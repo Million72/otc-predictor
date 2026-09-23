@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTC Predictor Dashboard - Ultra Fast Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 10px;
+            font-size: 2.8em;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.4);
+            letter-spacing: -1px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.95);
+            margin-bottom: 30px;
+            font-size: 1.2em;
+            font-weight: 500;
+        }
+
+        /* Mode Selector */
+        .mode-selector {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .mode-selector h3 {
+            margin-bottom: 18px;
+            color: #667eea;
+            font-size: 1.4em;
+        }
+
+        .mode-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .mode-btn {
+            padding: 18px 35px;
+            border: 3px solid #667eea;
+            background: white;
+            border-radius: 12px;
+            font-size: 1.15em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #667eea;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mode-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .mode-btn:hover::before {
+            left: 100%;
+        }
+
+        .mode-btn:hover {
+            background: #f0f0ff;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+            transform: scale(1.05);
+        }
+
+        .mode-btn .badge {
+            display: block;
+            font-size: 0.75em;
+            margin-top: 6px;
+            opacity: 0.9;
+        }
+
+        /* Live Analysis Panel */
+        .analysis-panel {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            border: 3px solid #3b82f6;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .analysis-panel::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            height: 5px;
+            background: linear-gradient(90deg, #3b82f6, #10b981, #f59e0b, #3b82f6);
+            background-size: 200% 100%;
+            animation: shimmer 3s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 200% 0%; }
+        }
+
+        .analysis-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #f0f0f0;
+        }
+
+        .analysis-title {
+            font-size: 2em;
+            font-weight: bold;
+            color: #3b82f6;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .analysis-stats {
+            display: flex;
+            gap: 25px;
+            font-size: 0.95em;
+            color: #666;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #f8f9fa;
+            padding: 8px 15px;
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            font-size: 1.3em;
+            color: #3b82f6;
+        }
+
+        /* Markets Grid */
+        .markets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .market-cell {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            padding: 18px;
+            border-radius: 12px;
+            border-left: 5px solid #cbd5e1;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .market-cell.analyzing {
+            border-left-color: #3b82f6;
+            animation: pulse-subtle 2s infinite;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+        }
+
+        .market-cell.ready {
+            border-left-color: #10b981;
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            cursor: pointer;
+            transform: scale(1.02);
+            box-shadow: 0 6px 15px rgba(16, 185, 129, 0.25);
+        }
+
+        .market-cell.ready:hover {
+            transform: scale(1.06);
+            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.35);
+        }
+
+        .market-cell.collecting {
+            border-left-color: #f59e0b;
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+        }
+
+        .market-cell.low-quality {
+            opacity: 0.65;
+            border-left-color: #94a3b8;
+        }
+
+        @keyframes pulse-subtle {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(0.98); }
+        }
+
+        .market-name {
+            font-weight: bold;
+            color: #1e293b;
+            font-size: 1em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .market-type-badge {
+            font-size: 0.7em;
+            padding: 3px 8px;
+            border-radius: 4px;
+            color: white;
+            font-weight: 600;
+        }
+
+        .badge-forex { background: linear-gradient(135deg, #10b981, #059669); }
+        .badge-volatility { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .badge-crash_boom { background: linear-gradient(135deg, #ef4444, #dc2626); }
+
+        .market-status {
+            font-size: 0.85em;
+            color: #64748b;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+        }
+
+        .status-icon {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .icon-collecting { 
+            background: #f59e0b; 
+            animation: pulse-icon 1.5s infinite;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+        }
+        .icon-analyzing { 
+            background: #3b82f6; 
+            animation: pulse-icon 1.5s infinite;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+        .icon-ready { 
+            background: #10b981;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+        .icon-waiting { background: #94a3b8; }
+
+        @keyframes pulse-icon {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        .market-quality {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+        }
+
+        .quality-score {
+            font-size: 1.4em;
+            font-weight: bold;
+        }
+
+        .score-excellent { color: #10b981; }
+        .score-good { color: #3b82f6; }
+        .score-fair { color: #f59e0b; }
+        .score-poor { color: #94a3b8; }
+
+        .quality-bar {
+            flex: 1;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-left: 12px;
+        }
+
+        .quality-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+
+        .fill-excellent { background: linear-gradient(90deg, #10b981, #059669); }
+        .fill-good { background: linear-gradient(90deg, #3b82f6, #2563eb); }
+        .fill-fair { background: linear-gradient(90deg, #f59e0b, #d97706); }
+        .fill-poor { background: linear-gradient(90deg, #94a3b8, #64748b); }
+
+        .market-direction {
+            font-size: 1.6em;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .dir-up { color: #10b981; }
+        .dir-down { color: #ef4444; }
+        .dir-none { color: #94a3b8; }
+
+        .data-progress {
+            font-size: 0.8em;
+            color: #64748b;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        .progress-bar-mini {
+            width: 100%;
+            height: 5px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .progress-fill-mini {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #2563eb);
+            transition: width 0.3s ease;
+        }
+
+        /* Best Opportunities Panel */
+        .best-markets-panel {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            border: 3px solid #10b981;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .best-markets-panel::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            height: 5px;
+            background: linear-gradient(90deg, #10b981, #3b82f6, #f59e0b, #10b981);
+            background-size: 200% 100%;
+            animation: shimmer 3s linear infinite;
+        }
+
+        .best-markets-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #f0f0f0;
+        }
+
+        .best-markets-title {
+            font-size: 2em;
+            font-weight: bold;
+            color: #10b981;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .opportunities-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 18px;
+        }
+
+        .opportunity-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 6px solid #10b981;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .opportunity-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+
+        .opportunity-card.rank-1 {
+            border-left-color: #fbbf24;
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+        }
+
+        .opportunity-card.rank-2 {
+            border-left-color: #94a3b8;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        .opportunity-card.rank-3 {
+            border-left-color: #f97316;
+            background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+        }
+
+        .opportunity-rank {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .opportunity-rank.rank-1 { 
+            background: linear-gradient(135deg, #fbbf24, #f59e0b); 
+            color: #000; 
+        }
+        .opportunity-rank.rank-2 { 
+            background: linear-gradient(135deg, #cbd5e1, #94a3b8); 
+            color: #000; 
+        }
+        .opportunity-rank.rank-3 { 
+            background: linear-gradient(135deg, #f97316, #ea580c); 
+            color: #fff; 
+        }
+
+        .opportunity-market {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 12px;
+        }
+
+        .opportunity-direction {
+            font-size: 2.2em;
+            font-weight: bold;
+            margin: 12px 0;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .direction-up { color: #10b981; }
+        .direction-down { color: #ef4444; }
+
+        .opportunity-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .opportunity-stat {
+            text-align: center;
+            padding: 10px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: #64748b;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #1e293b;
+        }
+
+        .quality-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin-top: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+
+        .quality-excellent { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+        .quality-good { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; }
+        .quality-fair { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+
+        .no-opportunities {
+            text-align: center;
+            padding: 50px;
+            color: #64748b;
+            font-size: 1.15em;
+        }
+
+        .no-opportunities .emoji {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .alert-banner {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            border-left: 5px solid #3b82f6;
+            padding: 18px 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+        }
+
+        .alert-banner.success {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            border-left-color: #10b981;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+
+        .alert-banner.warning {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left-color: #f59e0b;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+        }
+
+        .live-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: #10b981;
+            border-radius: 50%;
+            margin-right: 10px;
+            animation: pulse-icon 2s infinite;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
+        }
+
+        .controls {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+            margin-bottom: 25px;
+            display: flex;
+            gap: 18px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        select, button {
+            padding: 12px 24px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        select {
+            background: white;
+            min-width: 220px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: white;
+            font-size: 1.3em;
+            font-weight: 500;
+        }
+
+        .timestamp {
+            text-align: center;
+            color: rgba(255,255,255,0.95);
+            margin-top: 15px;
+            font-size: 1em;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 OTC Predictor Dashboard</h1>
+        <div class="subtitle" id="modeSubtitle">Ultra-Fast Multi-Mode Trading System</div>
+
+        <!-- Alert Banner -->
+        <div class="alert-banner success" id="alertBanner" style="display: none;">
+            <span id="alertIcon" style="font-size: 1.5em;">✅</span>
+            <div id="alertMessage" style="font-weight: 600;">System optimized for fastest signals!</div>
+        </div>
+
+        <!-- Mode Selector -->
+        <div class="mode-selector">
+            <h3>🔧 Select Trading Mode</h3>
+            <div class="mode-buttons">
+                <button class="mode-btn" onclick="selectMode('synthetics')" id="mode-synthetics">
+                    ⚡ Synthetics
+                    <span class="badge">V10-V100, Crash, Boom</span>
+                </button>
+                <button class="mode-btn" onclick="selectMode('forex')" id="mode-forex">
+                    💱 Forex
+                    <span class="badge">28 Currency Pairs</span>
+                </button>
+                <button class="mode-btn" onclick="selectMode('both')" id="mode-both">
+                    🚀 All Markets
+                    <span class="badge">39 Total Markets</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Live Analysis Panel -->
+        <div class="analysis-panel">
+            <div class="analysis-header">
+                <div class="analysis-title">
+                    <span class="live-indicator"></span>
+                    🔍 Live Market Analysis
+                </div>
+                <div class="analysis-stats">
+                    <div class="stat-item">
+                        <span>Total:</span>
+                        <span class="stat-value" id="totalMarkets">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Collecting:</span>
+                        <span class="stat-value" id="collectingCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Analyzing:</span>
+                        <span class="stat-value" id="analyzingCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Ready:</span>
+                        <span class="stat-value" id="readyCount">0</span>
+                    </div>
+                </div>
+            </div>
+            <div class="markets-grid" id="marketsGrid">
+                <div class="loading">🔌 Connecting to markets...</div>
+            </div>
+        </div>
+
+        <!-- Best Opportunities Panel -->
+        <div class="best-markets-panel">
+            <div class="best-markets-header">
+                <div class="best-markets-title">
+                    <span class="live-indicator"></span>
+                    ⭐ Top Trading Opportunities
+                </div>
+                <div style="color: #64748b; font-size: 0.95em; font-weight: 600;">
+                    Auto-updating every 20s
+                </div>
+            </div>
+            <div id="opportunitiesContainer">
+                <div class="loading">🔍 Scanning markets...</div>
+            </div>
+        </div>
+
+        <div class="timestamp" id="lastUpdate"></div>
+    </div>
+
+    <script>
+        let currentMode = 'forex'; // Start with forex
+        let allMarkets = { synthetics: [], forex: [], both: [] };
+        let marketAnalysisData = new Map();
+        let firstLoadComplete = false;
+
+        function selectMode(mode) {
+            currentMode = mode;
+            
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`mode-${mode}`).classList.add('active');
+            
+            const subtitles = {
+                'synthetics': '⚡ Trading Synthetic Indices - Signals in 30-60 seconds!',
+                'forex': '💱 Trading Forex Pairs - Signals in 15-20 minutes (52%+ confidence)',
+                'both': '🚀 Trading All Markets - Maximum Opportunities!'
+            };
+            document.getElementById('modeSubtitle').textContent = subtitles[mode];
+            
+            loadMarkets();
+            loadAllMarketsAnalysis();
+            loadBestMarkets();
+
+            // Show optimized info
+            if (mode === 'forex') {
+                showAlert('success', '✅ Ultra-Fast Mode: Forex signals in 15-20 minutes (was 60+ min)');
+            } else if (mode === 'synthetics') {
+                showAlert('success', '✅ Lightning Mode: Synthetic signals in 30-60 seconds!');
+            } else {
+                showAlert('success', '✅ Maximum Coverage: Monitoring all 39 markets simultaneously!');
+            }
+        }
+
+        function showAlert(type, message) {
+            const banner = document.getElementById('alertBanner');
+            const icon = document.getElementById('alertIcon');
+            const msg = document.getElementById('alertMessage');
+            
+            banner.className = 'alert-banner';
+            if (type === 'success') {
+                banner.classList.add('success');
+                icon.textContent = '✅';
+            } else if (type === 'warning') {
+                banner.classList.add('warning');
+                icon.textContent = '⚠️';
+            } else {
+                icon.textContent = 'ℹ️';
+            }
+            
+            msg.textContent = message;
+            banner.style.display = 'flex';
+            
+            setTimeout(() => {
+                banner.style.display = 'none';
+            }, 7000);
+        }
+
+        async function loadAllMarketsAnalysis() {
+            try {
+                const duration = currentMode === 'forex' ? 900 : 60;
+                const markets = allMarkets[currentMode];
+                
+                if (!markets || markets.length === 0) {
+                    return;
+                }
+
+                const promises = markets.map(async (market) => {
+                    try {
+                        const response = await fetch(`/api/predict/${market.market}/${duration}`);
+                        const data = await response.json();
+                        marketAnalysisData.set(market.market, data);
+                        return data;
+                    } catch (error) {
+                        console.error(`Error analyzing ${market.market}:`, error);
+                        return null;
+                    }
+                });
+
+                await Promise.all(promises);
+                displayMarketsGrid();
+                updateAnalysisStats();
+
+                if (!firstLoadComplete) {
+                    firstLoadComplete = true;
+                    const readyCount = document.getElementById('readyCount').textContent;
+                    if (parseInt(readyCount) > 0) {
+                        showAlert('success', `🎯 ${readyCount} markets ready to trade!`);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error loading market analysis:', error);
+            }
+        }
+
+        function displayMarketsGrid() {
+            const container = document.getElementById('marketsGrid');
+            const markets = allMarkets[currentMode];
+            
+            if (!markets || markets.length === 0) {
+                container.innerHTML = '<div class="loading">❌ No markets available</div>';
+                return;
+            }
+
+            const html = markets.map(market => {
+                const analysis = marketAnalysisData.get(market.market);
+                if (!analysis) {
+                    return createMarketCell(market.market, 'waiting', null);
+                }
+
+                let status = 'waiting';
+                if (analysis.direction === 'NONE' && analysis.reason && analysis.reason.includes('Collecting data')) {
+                    status = 'collecting';
+                } else if (analysis.direction === 'NONE') {
+                    status = 'analyzing';
+                } else if (analysis.confidence >= 0.52) { // ✅ NEW: 52% threshold
+                    status = 'ready';
+                } else {
+                    status = 'low-quality';
+                }
+
+                return createMarketCell(market.market, status, analysis);
+            }).join('');
+
+            container.innerHTML = html;
+        }
+
+        function createMarketCell(market, status, analysis) {
+            const marketType = getMarketType(market);
+            const emoji = marketType === 'forex' ? '💱' : marketType === 'crash_boom' ? '💥' : '⚡';
+            
+            let statusText = 'Waiting';
+            let iconClass = 'icon-waiting';
+            let qualityScore = 0;
+            let direction = '';
+            let dataProgress = '';
+
+            if (analysis) {
+                qualityScore = calculateQualityScoreClient(analysis);
+                
+                if (status === 'collecting') {
+                    statusText = '📊 Collecting Data';
+                    iconClass = 'icon-collecting';
+                    
+                    const match = analysis.reason.match(/(\d+)\/(\d+) ticks/);
+                    if (match) {
+                        const current = parseInt(match[1]);
+                        const required = parseInt(match[2]);
+                        const percentage = (current / required * 100).toFixed(0);
+                        dataProgress = `${current}/${required} (${percentage}%)`;
+                    }
+                } else if (status === 'analyzing') {
+                    statusText = '🔄 Analyzing...';
+                    iconClass = 'icon-analyzing';
+                } else if (status === 'ready') {
+                    statusText = '✅ Ready to Trade';
+                    iconClass = 'icon-ready';
+                    direction = analysis.direction;
+                } else if (status === 'low-quality') {
+                    statusText = '⚠️ Low Confidence';
+                    iconClass = 'icon-analyzing';
+                }
+            }
+
+            const qualityClass = qualityScore >= 75 ? 'score-excellent' : 
+                                qualityScore >= 60 ? 'score-good' : 
+                                qualityScore >= 45 ? 'score-fair' : 'score-poor';
+            
+            const fillClass = qualityScore >= 75 ? 'fill-excellent' : 
+                             qualityScore >= 60 ? 'fill-good' : 
+                             qualityScore >= 45 ? 'fill-fair' : 'fill-poor';
+
+            const onClick = status === 'ready' ? `onclick="viewMarketDetails('${market}')"` : '';
+
+            return `
+                <div class="market-cell ${status}" ${onClick}>
+                    <div class="market-name">
+                        ${emoji}
+                        <span>${market}</span>
+                        <span class="market-type-badge badge-${marketType}">${marketType.toUpperCase()}</span>
+                    </div>
+                    <div class="market-status">
+                        <span class="status-icon ${iconClass}"></span>
+                        ${statusText}
+                    </div>
+                    ${dataProgress ? `
+                        <div class="data-progress">
+                            ${dataProgress}
+                            <div class="progress-bar-mini">
+                                <div class="progress-fill-mini" style="width: ${(parseInt(dataProgress.split('/')[0]) / parseInt(dataProgress.split('/')[1].split(' ')[0]) * 100).toFixed(0)}%"></div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${direction ? `
+                        <div class="market-direction dir-${direction.toLowerCase()}">
+                            ${direction === 'UP' ? '⬆️' : '⬇️'} ${direction}
+                        </div>
+                    ` : ''}
+                    <div class="market-quality">
+                        <span class="quality-score ${qualityClass}">${qualityScore.toFixed(0)}</span>
+                        <div class="quality-bar">
+                            <div class="quality-fill ${fillClass}" style="width: ${qualityScore}%"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function calculateQualityScoreClient(pred) {
+            let score = 0;
+
+            // Confidence (40 points) - adjusted for new 52% threshold
+            score += pred.confidence * 40;
+
+            // Data quality (30 points)
+            const marketType = getMarketType(pred.market);
+            const minRequired = marketType === 'forex' ? 20 : 20; // ✅ NEW: Lower minimums
+            
+            if (pred.data_points >= minRequired * 2) {
+                score += 30;
+            } else if (pred.data_points >= minRequired * 1.5) {
+                score += 25;
+            } else if (pred.data_points >= minRequired) {
+                score += 20;
+            } else {
+                score += 10;
+            }
+
+            // Direction clarity (30 points)
+            if (pred.direction !== 'NONE') {
+                score += 30;
+            } else if (pred.data_points >= minRequired * 0.5) {
+                score += 10;
+            }
+
+            return Math.min(100, Math.max(0, score));
+        }
+
+        function updateAnalysisStats() {
+            const markets = allMarkets[currentMode];
+            let collecting = 0;
+            let analyzing = 0;
+            let ready = 0;
+
+            markets.forEach(market => {
+                const analysis = marketAnalysisData.get(market.market);
+                if (analysis) {
+                    if (analysis.reason && analysis.reason.includes('Collecting data')) {
+                        collecting++;
+                    } else if (analysis.direction !== 'NONE' && analysis.confidence >= 0.52) { // ✅ NEW: 52%
+                        ready++;
+                    } else {
+                        analyzing++;
+                    }
+                }
+            });
+
+            document.getElementById('totalMarkets').textContent = markets.length;
+            document.getElementById('collectingCount').textContent = collecting;
+            document.getElementById('analyzingCount').textContent = analyzing;
+            document.getElementById('readyCount').textContent = ready;
+        }
+
+        async function loadBestMarkets() {
+            try {
+                const duration = currentMode === 'forex' ? 900 : 60;
+                const response = await fetch(`/api/best-markets?duration=${duration}&limit=6&mode=${currentMode}`);
+                const data = await response.json();
+                
+                displayBestMarkets(data);
+                updateTimestamp();
+            } catch (error) {
+                console.error('Error loading best markets:', error);
+            }
+        }
+
+        function displayBestMarkets(data) {
+            const container = document.getElementById('opportunitiesContainer');
+            
+            if (!data.opportunities || data.opportunities.length === 0) {
+                container.innerHTML = `
+                    <div class="no-opportunities">
+                        <div class="emoji">💤</div>
+                        <div style="font-weight: 600;">No high-quality signals yet</div>
+                        <div style="margin-top: 15px; font-size: 0.9em; color: #94a3b8;">
+                            Analyzed ${data.total_analyzed || 0} markets • Waiting for 52%+ confidence
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const html = data.opportunities.map((opp, index) => {
+                const rank = index + 1;
+                const qualityClass = opp.quality_score >= 75 ? 'quality-excellent' : 
+                                    opp.quality_score >= 60 ? 'quality-good' : 'quality-fair';
+                const qualityLabel = opp.quality_score >= 75 ? '⭐ Excellent' : 
+                                    opp.quality_score >= 60 ? '✅ Good' : '👍 Fair';
+                
+                const directionClass = opp.direction === 'UP' ? 'direction-up' : 'direction-down';
+                const directionEmoji = opp.direction === 'UP' ? '🚀' : '📉';
+                
+                const marketEmoji = opp.market_type === 'forex' ? '💱' : 
+                                   opp.market_type === 'crash_boom' ? '💥' : '⚡';
+
+                return `
+                    <div class="opportunity-card rank-${Math.min(rank, 3)}" onclick="viewMarketDetails('${opp.market}')">
+                        <div class="opportunity-rank rank-${Math.min(rank, 3)}">#${rank}</div>
+                        <div class="opportunity-market">${marketEmoji} ${opp.market}</div>
+                        <div class="opportunity-direction ${directionClass}">
+                            ${directionEmoji} ${opp.direction}
+                        </div>
+                        <div class="opportunity-stats">
+                            <div class="opportunity-stat">
+                                <div class="stat-label">Quality</div>
+                                <div class="stat-value">${opp.quality_score.toFixed(0)}</div>
+                            </div>
+                            <div class="opportunity-stat">
+                                <div class="stat-label">Confidence</div>
+                                <div class="stat-value">${(opp.confidence * 100).toFixed(0)}%</div>
+                            </div>
+                            <div class="opportunity-stat">
+                                <div class="stat-label">Win Rate</div>
+                                <div class="stat-value">${opp.win_rate ? opp.win_rate.toFixed(0) + '%' : '🆕'}</div>
+                            </div>
+                            <div class="opportunity-stat">
+                                <div class="stat-label">Data Points</div>
+                                <div class="stat-value">${opp.data_points}</div>
+                            </div>
+                        </div>
+                        <div class="quality-badge ${qualityClass}">${qualityLabel}</div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                <div class="opportunities-grid">${html}</div>
+                <div style="text-align: center; margin-top: 20px; color: #64748b; font-size: 0.95em; font-weight: 600;">
+                    🎯 Found ${data.opportunities.length} of ${data.total_analyzed} markets • Updated ${new Date().toLocaleTimeString()}
+                </div>
+            `;
+        }
+
+        function viewMarketDetails(market) {
+            showAlert('success', `📊 Viewing ${market} - Feature coming soon!`);
+        }
+
+        async function loadMarkets() {
+            try {
+                const response = await fetch('/api/markets');
+                const markets = await response.json();
+                
+                allMarkets.synthetics = markets.filter(m => 
+                    m.market.includes('volatility') || m.market.includes('crash') || m.market.includes('boom')
+                );
+                
+                allMarkets.forex = markets.filter(m => 
+                    m.market.toLowerCase().includes('frx') || m.market.toLowerCase().includes('aud') || 
+                    m.market.toLowerCase().includes('eur') || m.market.toLowerCase().includes('gbp')
+                );
+                
+                allMarkets.both = markets;
+            } catch (error) {
+                console.error('Error loading markets:', error);
+            }
+        }
+
+        function getMarketType(market) {
+            market = market.toLowerCase();
+            if (market.includes('frx') || market.includes('aud') || market.includes('eur') || 
+                market.includes('gbp') || market.includes('usd') || market.includes('jpy')) {
+                return 'forex';
+            }
+            if (market.includes('crash') || market.includes('boom')) {
+                return 'crash_boom';
+            }
+            return 'volatility';
+        }
+
+        function updateTimestamp() {
+            const now = new Date().toLocaleString();
+            document.getElementById('lastUpdate').textContent = `⏰ Last updated: ${now}`;
+        }
+
+        // Initialize with forex mode (best for testing optimizations)
+        selectMode('forex');
+        loadMarkets();
+        
+        // ✅ OPTIMIZED: Smart refresh intervals
+        setInterval(loadAllMarketsAnalysis, 45000); // 45 seconds for market analysis
+        setInterval(loadBestMarkets, 20000); // 20 seconds for opportunities
+    </script>
+</body>
+</html>
