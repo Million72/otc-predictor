@@ -2,6 +2,7 @@ package collector
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -163,8 +164,11 @@ func (c *OTCCollector) connectBatch(connKey string, markets []string) error {
 		// connection being dropped/blocked outright), resp tells us
 		// exactly why — 403 (blocked), 429 (rate limited), etc.
 		if resp != nil {
-			log.Printf("❌ Deriv handshake rejected: HTTP %d %s", resp.StatusCode, resp.Status)
+			body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 			resp.Body.Close()
+			log.Printf("❌ Deriv handshake rejected: HTTP %d %s", resp.StatusCode, resp.Status)
+			log.Printf("   Response body: %s", string(body))
+			log.Printf("   CF-Ray: %s", resp.Header.Get("Cf-Ray"))
 		} else {
 			log.Printf("❌ Deriv connection failed with no HTTP response at all (network-level block, not an app-level rejection)")
 		}
@@ -333,30 +337,17 @@ func (c *OTCCollector) keepAlive(connKey string) {
 func (c *OTCCollector) marketToSymbol(market string) string {
 	symbolMap := map[string]string{
 		// Synthetic indices (11)
-		"volatility_5":   "R_5",
-        "volatility_10":  "R_10",
-        "volatility_25":  "R_25",
-        "volatility_50":  "R_50",
-        "volatility_75":  "R_75",
-        "volatility_100": "R_100",
-
-        // Volatility (1s) indices (6)
-        "volatility_5_1s":   "1HZ5V",
-        "volatility_10_1s":  "1HZ10V",
-        "volatility_25_1s":  "1HZ25V",
-        "volatility_50_1s":  "1HZ50V",
-        "volatility_75_1s":  "1HZ75V",
-        "volatility_100_1s": "1HZ100V",
-
-        // Crash indices (3)
-        "crash_300_1s":  "CRASH300",
-        "crash_500_1s":  "CRASH500",
-        "crash_1000_1s": "CRASH1000",
-
-        // Boom indices (3)
-        "boom_300_1s":  "BOOM300",
-        "boom_500_1s":  "BOOM500",
-        "boom_1000_1s": "BOOM1000",
+		"volatility_10_1s":  "R_10",
+		"volatility_25_1s":  "R_25",
+		"volatility_50_1s":  "R_50",
+		"volatility_75_1s":  "R_75",
+		"volatility_100_1s": "R_100",
+		"crash_300_1s":      "CRASH300",
+		"crash_500_1s":      "CRASH500",
+		"crash_1000_1s":     "CRASH1000",
+		"boom_300_1s":       "BOOM300",
+		"boom_500_1s":       "BOOM500",
+		"boom_1000_1s":      "BOOM1000",
 
 		// Forex pairs (28) - USD Majors
 		"frxEURUSD": "frxEURUSD",
@@ -410,30 +401,18 @@ func (c *OTCCollector) marketToSymbol(market string) string {
 func (c *OTCCollector) symbolToMarket(symbol string) string {
 	marketMap := map[string]string{
 		// Synthetic indices (11)
-		"volatility_5":   "R_5",
-        "volatility_10":  "R_10",
-        "volatility_25":  "R_25",
-        "volatility_50":  "R_50",
-        "volatility_75":  "R_75",
-        "volatility_100": "R_100",
+		"R_10":      "volatility_10_1s",
+		"R_25":      "volatility_25_1s",
+		"R_50":      "volatility_50_1s",
+		"R_75":      "volatility_75_1s",
+		"R_100":     "volatility_100_1s",
+		"CRASH300":  "crash_300_1s",
+		"CRASH500":  "crash_500_1s",
+		"CRASH1000": "crash_1000_1s",
+		"BOOM300":   "boom_300_1s",
+		"BOOM500":   "boom_500_1s",
+		"BOOM1000":  "boom_1000_1s",
 
-        // Volatility (1s) indices (6)
-        "volatility_5_1s":   "1HZ5V",
-        "volatility_10_1s":  "1HZ10V",
-        "volatility_25_1s":  "1HZ25V",
-        "volatility_50_1s":  "1HZ50V",
-        "volatility_75_1s":  "1HZ75V",
-        "volatility_100_1s": "1HZ100V",
-
-        // Crash indices (3)
-        "crash_300_1s":  "CRASH300",
-        "crash_500_1s":  "CRASH500",
-        "crash_1000_1s": "CRASH1000",
-
-        // Boom indices (3)
-        "boom_300_1s":  "BOOM300",
-        "boom_500_1s":  "BOOM500",
-        "boom_1000_1s": "BOOM1000",
 		// Forex pairs (28) - USD Majors
 		"frxEURUSD": "frxEURUSD",
 		"frxGBPUSD": "frxGBPUSD",
