@@ -337,17 +337,24 @@ func (c *OTCCollector) keepAlive(connKey string) {
 func (c *OTCCollector) marketToSymbol(market string) string {
 	symbolMap := map[string]string{
 		// Synthetic indices (11)
-		"volatility_10_1s":  "R_10",
-		"volatility_25_1s":  "R_25",
-		"volatility_50_1s":  "R_50",
-		"volatility_75_1s":  "R_75",
-		"volatility_100_1s": "R_100",
-		"crash_300_1s":      "CRASH300",
-		"crash_500_1s":      "CRASH500",
-		"crash_1000_1s":     "CRASH1000",
-		"boom_300_1s":       "BOOM300",
-		"boom_500_1s":       "BOOM500",
-		"boom_1000_1s":      "BOOM1000",
+		// NOTE: "R_10".."R_100" are the classic 2-second-tick Volatility
+		// indices. The actual 1-tick/second variants (what config.yaml
+		// asks for via the "_1s" market names) use the "1HZ..V" symbol
+		// family instead. Using R_10 etc. here silently subscribes to
+		// the wrong (slower) instrument.
+		"volatility_10_1s":  "1HZ10V",
+		"volatility_25_1s":  "1HZ25V",
+		"volatility_50_1s":  "1HZ50V",
+		"volatility_75_1s":  "1HZ75V",
+		"volatility_100_1s": "1HZ100V",
+		// Crash/Boom 300 use an "N" suffix on Deriv (the relaunched
+		// 300 variant); 500/1000 do not.
+		"crash_300_1s":  "CRASH300N",
+		"crash_500_1s":  "CRASH500",
+		"crash_1000_1s": "CRASH1000",
+		"boom_300_1s":   "BOOM300N",
+		"boom_500_1s":   "BOOM500",
+		"boom_1000_1s":  "BOOM1000",
 
 		// Forex pairs (28) - USD Majors
 		"frxEURUSD": "frxEURUSD",
@@ -400,16 +407,16 @@ func (c *OTCCollector) marketToSymbol(market string) string {
 // ✅ UPDATED: Added ALL 39 markets
 func (c *OTCCollector) symbolToMarket(symbol string) string {
 	marketMap := map[string]string{
-		// Synthetic indices (11)
-		"R_10":      "volatility_10_1s",
-		"R_25":      "volatility_25_1s",
-		"R_50":      "volatility_50_1s",
-		"R_75":      "volatility_75_1s",
-		"R_100":     "volatility_100_1s",
-		"CRASH300":  "crash_300_1s",
+		// Synthetic indices (11) — mirror of marketToSymbol above.
+		"1HZ10V":    "volatility_10_1s",
+		"1HZ25V":    "volatility_25_1s",
+		"1HZ50V":    "volatility_50_1s",
+		"1HZ75V":    "volatility_75_1s",
+		"1HZ100V":   "volatility_100_1s",
+		"CRASH300N": "crash_300_1s",
 		"CRASH500":  "crash_500_1s",
 		"CRASH1000": "crash_1000_1s",
-		"BOOM300":   "boom_300_1s",
+		"BOOM300N":  "boom_300_1s",
 		"BOOM500":   "boom_500_1s",
 		"BOOM1000":  "boom_1000_1s",
 
@@ -481,3 +488,4 @@ func (c *OTCCollector) Stop() {
 
 	log.Println("🛑 Multi-market collector stopped")
 }
+
