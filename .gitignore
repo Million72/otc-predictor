@@ -1,0 +1,16 @@
+# Compiled binary (was committed at repo root — see note)
+/otc-predictor
+
+# Logs
+*.log
+
+# Local env overrides
+.env
+
+# Persisted trade results (grows over time, not meant to be committed)
+/data/
+
+# OS / editor cruft
+.DS_Store
+.vscode/
+.idea/
