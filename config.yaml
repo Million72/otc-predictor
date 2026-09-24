@@ -43,7 +43,7 @@ synthetic_markets:
 
 # Data source (Deriv.com WebSocket API)
 datasource:
-  api_url: "wss://ws.binaryws.com/websockets/v3?app_id=1089"
+  api_url: "wss://api.derivws.com/trading/v1/options/ws/public"
   api_token: ""
   reconnect_delay: 5
   ping_interval: 25
