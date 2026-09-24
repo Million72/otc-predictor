@@ -44,6 +44,7 @@ type Prediction struct {
 	Direction    string     `json:"direction"`   // "UP", "DOWN", "NONE"
 	Confidence   float64    `json:"confidence"`
 	Reason       string     `json:"reason"`
+	Signals      []string   `json:"signals"` // names of strategies that voted for the winning direction
 	CurrentPrice float64    `json:"current_price"`
 	Duration     int        `json:"duration"` // seconds
 	Timestamp    time.Time  `json:"timestamp"`
@@ -57,6 +58,8 @@ type PendingPrediction struct {
 	Market     string
 	MarketType string
 	Direction  string
+	Reason     string
+	Signals    []string
 	EntryPrice float64
 	EntryTime  time.Time
 	Duration   int
@@ -70,6 +73,8 @@ type TradeResult struct {
 	Market       string    `json:"market"`
 	MarketType   string    `json:"market_type"`
 	Direction    string    `json:"direction"`
+	Reason       string    `json:"reason"`
+	Signals      []string  `json:"signals"`
 	EntryPrice   float64   `json:"entry_price"`
 	ExitPrice    float64   `json:"exit_price"`
 	EntryTime    time.Time `json:"entry_time"`
