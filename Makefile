@@ -1,4 +1,4 @@
-.PHONY: run build clean test install help fmt lint dev check-config endpoints analyze
+.PHONY: run build clean test install help
 
 # Default target
 all: run
@@ -69,7 +69,7 @@ endpoints:
 	@echo "  Dashboard:        http://localhost:8080"
 	@echo ""
 
-# Analyze persisted trade results
+# Analyze persisted trade results to see which signals actually win
 analyze:
 	@echo "📊 Analyzing trade results..."
 	go run cmd/analyze/main.go
@@ -90,7 +90,6 @@ help:
 	@echo "  make dev          - Development mode with auto-reload"
 	@echo "  make check-config - Verify configuration file"
 	@echo "  make endpoints    - Show API endpoints"
-	@echo "  make analyze      - Analyze persisted trade results"
 	@echo "  make help         - Show this help"
 	@echo ""
 	@echo "📚 Quick Start:"
