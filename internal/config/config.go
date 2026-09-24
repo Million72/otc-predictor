@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"otc-predictor/pkg/types"
 
@@ -31,6 +32,15 @@ func Load(filename string) (types.Config, error) {
 	// token never has to be committed.
 	if envToken := os.Getenv("DERIV_API_TOKEN"); envToken != "" {
 		config.DataSource.APIToken = envToken
+	}
+
+	// Most hosts (Render, Fly, Railway, etc.) assign a port at runtime
+	// via $PORT and expect the app to bind to exactly that — config.yaml's
+	// api.port is only a local-dev default.
+	if envPort := os.Getenv("PORT"); envPort != "" {
+		if p, err := strconv.Atoi(envPort); err == nil {
+			config.API.Port = p
+		}
 	}
 
 	// Set defaults for missing values
@@ -243,4 +253,3 @@ func validate(config types.Config) error {
 
 	return nil
 }
-
