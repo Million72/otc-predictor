@@ -314,18 +314,31 @@ func (c *OTCCollector) keepAlive(connKey string) {
 // ✅ UPDATED: Added ALL 39 markets
 func (c *OTCCollector) marketToSymbol(market string) string {
 	symbolMap := map[string]string{
-		// Synthetic indices (11)
-		"volatility_10_1s":  "R_10",
-		"volatility_25_1s":  "R_25",
-		"volatility_50_1s":  "R_50",
-		"volatility_75_1s":  "R_75",
-		"volatility_100_1s": "R_100",
-		"crash_300_1s":      "CRASH300",
-		"crash_500_1s":      "CRASH500",
-		"crash_1000_1s":     "CRASH1000",
-		"boom_300_1s":       "BOOM300",
-		"boom_500_1s":       "BOOM500",
-		"boom_1000_1s":      "BOOM1000",
+       // Standard Volatility indices (6)
+       "volatility_5":   "R_5",
+       "volatility_10":  "R_10",
+       "volatility_25":  "R_25",
+       "volatility_50":  "R_50",
+       "volatility_75":  "R_75",
+       "volatility_100": "R_100",
+
+       // Volatility (1s) indices (6)
+       "volatility_5_1s":   "1HZ5V",
+       "volatility_10_1s":  "1HZ10V",
+       "volatility_25_1s":  "1HZ25V",
+       "volatility_50_1s":  "1HZ50V",
+       "volatility_75_1s":  "1HZ75V",
+       "volatility_100_1s": "1HZ100V",
+
+        // Crash indices (3)
+        "crash_300_1s":  "CRASH300",
+        "crash_500_1s":  "CRASH500",
+        "crash_1000_1s": "CRASH1000",
+
+        // Boom indices (3)
+        "boom_300_1s":  "BOOM300",
+        "boom_500_1s":  "BOOM500",
+        "boom_1000_1s": "BOOM1000",
 
 		// Forex pairs (28) - USD Majors
 		"frxEURUSD": "frxEURUSD",
@@ -336,6 +349,9 @@ func (c *OTCCollector) marketToSymbol(market string) string {
 		"frxAUDUSD": "frxAUDUSD",
 		"frxNZDUSD": "frxNZDUSD",
 		"frxUSDNOK": "frxUSDNOK",
+
+		// Gold
+        "frxXAUUSD": "frxXAUUSD",
 
 		// EUR Cross Pairs
 		"frxEURGBP": "frxEURGBP",
@@ -459,4 +475,3 @@ func (c *OTCCollector) Stop() {
 
 	log.Println("🛑 Multi-market collector stopped")
 }
-
