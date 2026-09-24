@@ -3,6 +3,7 @@ package collector
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -148,7 +149,14 @@ func (c *OTCCollector) connectionManager(batchIdx int, markets []string) {
 
 // connectBatch establishes WebSocket connection for a batch
 func (c *OTCCollector) connectBatch(connKey string, markets []string) error {
-	conn, _, err := websocket.DefaultDialer.Dial(c.config.APIURL, nil)
+	// Some WebSocket gateways reject the handshake outright if there's
+	// no Origin header — cheap to send one before assuming the block is
+	// IP-based (hosting providers are commonly blocklisted by trading
+	// platforms to deter bots).
+	header := http.Header{}
+	header.Set("Origin", "https://deriv.com")
+
+	conn, _, err := websocket.DefaultDialer.Dial(c.config.APIURL, header)
 	if err != nil {
 		return fmt.Errorf("failed to connect to Deriv API: %w", err)
 	}
@@ -314,33 +322,32 @@ func (c *OTCCollector) keepAlive(connKey string) {
 // ✅ UPDATED: Added ALL 39 markets
 func (c *OTCCollector) marketToSymbol(market string) string {
 	symbolMap := map[string]string{
-       // Standard Volatility indices (6)
-       "volatility_5":   "R_5",
-       "volatility_10":  "R_10",
-       "volatility_25":  "R_25",
-       "volatility_50":  "R_50",
-       "volatility_75":  "R_75",
-       "volatility_100": "R_100",
+		// Synthetic indices (11)
+		"volatility_5":   "R_5",
+        "volatility_10":  "R_10",
+        "volatility_25":  "R_25",
+        "volatility_50":  "R_50",
+        "volatility_75":  "R_75",
+        "volatility_100": "R_100",
 
-       // Volatility (1s) indices (6)
-       "volatility_5_1s":   "1HZ5V",
-       "volatility_10_1s":  "1HZ10V",
-       "volatility_25_1s":  "1HZ25V",
-       "volatility_50_1s":  "1HZ50V",
-       "volatility_75_1s":  "1HZ75V",
-       "volatility_100_1s": "1HZ100V",
+        // Volatility (1s) indices (6)
+        "volatility_5_1s":   "1HZ5V",
+        "volatility_10_1s":  "1HZ10V",
+        "volatility_25_1s":  "1HZ25V",
+        "volatility_50_1s":  "1HZ50V",
+        "volatility_75_1s":  "1HZ75V",
+        "volatility_100_1s": "1HZ100V",
 
         // Crash indices (3)
         "crash_300_1s":  "CRASH300",
         "crash_500_1s":  "CRASH500",
         "crash_1000_1s": "CRASH1000",
-
+ 
         // Boom indices (3)
         "boom_300_1s":  "BOOM300",
         "boom_500_1s":  "BOOM500",
         "boom_1000_1s": "BOOM1000",
-
-		// Forex pairs (28) - USD Majors
+ 		// Forex pairs (28) - USD Majors
 		"frxEURUSD": "frxEURUSD",
 		"frxGBPUSD": "frxGBPUSD",
 		"frxUSDJPY": "frxUSDJPY",
@@ -349,9 +356,6 @@ func (c *OTCCollector) marketToSymbol(market string) string {
 		"frxAUDUSD": "frxAUDUSD",
 		"frxNZDUSD": "frxNZDUSD",
 		"frxUSDNOK": "frxUSDNOK",
-
-		// Gold
-        "frxXAUUSD": "frxXAUUSD",
 
 		// EUR Cross Pairs
 		"frxEURGBP": "frxEURGBP",
@@ -395,17 +399,30 @@ func (c *OTCCollector) marketToSymbol(market string) string {
 func (c *OTCCollector) symbolToMarket(symbol string) string {
 	marketMap := map[string]string{
 		// Synthetic indices (11)
-		"R_10":      "volatility_10_1s",
-		"R_25":      "volatility_25_1s",
-		"R_50":      "volatility_50_1s",
-		"R_75":      "volatility_75_1s",
-		"R_100":     "volatility_100_1s",
-		"CRASH300":  "crash_300_1s",
-		"CRASH500":  "crash_500_1s",
-		"CRASH1000": "crash_1000_1s",
-		"BOOM300":   "boom_300_1s",
-		"BOOM500":   "boom_500_1s",
-		"BOOM1000":  "boom_1000_1s",
+		"volatility_5":   "R_5",
+        "volatility_10":  "R_10",
+        "volatility_25":  "R_25",
+        "volatility_50":  "R_50",
+        "volatility_75":  "R_75",
+        "volatility_100": "R_100",
+
+        // Volatility (1s) indices (6)
+        "volatility_5_1s":   "1HZ5V",
+        "volatility_10_1s":  "1HZ10V",
+        "volatility_25_1s":  "1HZ25V",
+        "volatility_50_1s":  "1HZ50V",
+        "volatility_75_1s":  "1HZ75V",
+        "volatility_100_1s": "1HZ100V",
+
+        // Crash indices (3)
+        "crash_300_1s":  "CRASH300",
+        "crash_500_1s":  "CRASH500",
+        "crash_1000_1s": "CRASH1000",
+
+        // Boom indices (3)
+        "boom_300_1s":  "BOOM300",
+        "boom_500_1s":  "BOOM500",
+        "boom_1000_1s": "BOOM1000",
 
 		// Forex pairs (28) - USD Majors
 		"frxEURUSD": "frxEURUSD",
