@@ -271,4 +271,3 @@ func getMarketTypeHelper(market string) string {
 	// Default to volatility
 	return "volatility"
 }
-
