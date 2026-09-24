@@ -1,167 +1,177 @@
+// Command analyze reads the persisted trade-results log
+// (data/results.jsonl, written by internal/tracker) and reports actual
+// win rate broken down by signal name, market type, and confidence
+// bucket. Run it after the collector has accumulated enough trades to
+// be meaningful (a few hundred, ideally) — with only a handful of
+// trades the numbers are noise, not signal.
+//
+// Usage:
+//
+//	go run cmd/analyze/main.go [path-to-results.jsonl]
+//
+// Defaults to data/results.jsonl if no path is given.
 package main
 
 import (
-	"log"
+	"bufio"
+	"encoding/json"
+	"fmt"
 	"os"
-	"os/signal"
-	"strings"
-	"syscall"
-	"time"
+	"sort"
 
-	"otc-predictor/internal/api"
-	"otc-predictor/internal/collector"
-	"otc-predictor/internal/config"
-	"otc-predictor/internal/predictor"
-	"otc-predictor/internal/storage"
-	"otc-predictor/internal/tracker"
 	"otc-predictor/pkg/types"
 )
 
+type bucket struct {
+	wins, losses int
+	pl           float64
+}
+
+func (b bucket) total() int       { return b.wins + b.losses }
+func (b bucket) winRate() float64 {
+	if b.total() == 0 {
+		return 0
+	}
+	return float64(b.wins) / float64(b.total()) * 100
+}
+
 func main() {
-	log.Println("🚀 OTC Predictor Starting...")
+	path := "data/results.jsonl"
+	if len(os.Args) > 1 {
+		path = os.Args[1]
+	}
 
-	// Load configuration
-	cfg, err := config.Load("config.yaml")
+	f, err := os.Open(path)
 	if err != nil {
-		log.Fatalf("❌ Failed to load config: %v", err)
+		fmt.Fprintf(os.Stderr, "Couldn't open %s: %v\n", path, err)
+		fmt.Fprintln(os.Stderr, "(No trades logged yet — this file is written as predictions resolve. Let the collector run a while first.)")
+		os.Exit(1)
 	}
+	defer f.Close()
 
-	log.Printf("✅ Configuration loaded: %d markets configured", len(cfg.Markets))
+	bySignal := map[string]*bucket{}
+	byMarketType := map[string]*bucket{}
+	byConfidence := map[string]*bucket{}
+	overall := &bucket{}
 
-	// Initialize storage
-	store := storage.NewMemoryStorage(cfg.Storage.MaxTicksInMemory)
-	log.Println("✅ Storage initialized")
+	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 
-	// Initialize result tracker
-	resultTracker := tracker.NewResultTracker(store)
-	log.Println("✅ Result tracker initialized")
-
-	// Initialize prediction engine
-	engine := predictor.NewEngine(store, cfg, resultTracker)
-	log.Println("✅ Prediction engine initialized")
-
-	// Initialize OTC collector
-	otcCollector := collector.NewOTCCollector(store, cfg.DataSource, cfg.Markets)
-	if err := otcCollector.Start(); err != nil {
-		log.Fatalf("❌ Failed to start OTC collector: %v", err)
-	}
-
-	// Wait for initial data collection (15 seconds) - faster startup
-	log.Println("⏳ Collecting initial market data (15 seconds)...")
-	time.Sleep(15 * time.Second)
-
-	// Check if we have data
-	activeMarkets := store.GetActiveMarkets()
-	log.Printf("✅ Data collection started: %d markets active", len(activeMarkets))
-
-	if len(activeMarkets) == 0 {
-		log.Println("⚠️  No markets active yet, but continuing...")
-	}
-
-	// Start background tasks
-	go startBackgroundTasks(engine, store, resultTracker, cfg)
-
-	// Initialize and start API server
-	server := api.NewServer(engine, store, resultTracker, cfg.API)
-
-	// Start server in goroutine
-	go func() {
-		if err := server.Start(); err != nil {
-			log.Fatalf("❌ Failed to start API server: %v", err)
+	count := 0
+	for scanner.Scan() {
+		var r types.TradeResult
+		if err := json.Unmarshal(scanner.Bytes(), &r); err != nil {
+			continue
 		}
-	}()
+		count++
 
-	// Print usage instructions
-	printUsageInstructions(cfg)
+		add(overall, r)
 
-	// Wait for interrupt signal
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+		mt := r.MarketType
+		if mt == "" {
+			mt = "unknown"
+		}
+		if byMarketType[mt] == nil {
+			byMarketType[mt] = &bucket{}
+		}
+		add(byMarketType[mt], r)
 
-	log.Println("✅ System ready! Press Ctrl+C to stop")
-	<-quit
+		for _, sig := range r.Signals {
+			if bySignal[sig] == nil {
+				bySignal[sig] = &bucket{}
+			}
+			add(bySignal[sig], r)
+		}
 
-	log.Println("\n🛑 Shutting down gracefully...")
-
-	// Stop collector
-	otcCollector.Stop()
-
-	// Shutdown API server
-	if err := server.Shutdown(); err != nil {
-		log.Printf("⚠️  Error during shutdown: %v", err)
+		cb := confidenceBucket(r.Confidence)
+		if byConfidence[cb] == nil {
+			byConfidence[cb] = &bucket{}
+		}
+		add(byConfidence[cb], r)
 	}
 
-	// Print final performance summary
-	log.Println("\n" + resultTracker.GetPerformanceSummary())
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error reading %s: %v\n", path, err)
+		os.Exit(1)
+	}
 
-	log.Println("👋 Goodbye!")
+	if count == 0 {
+		fmt.Println("No completed trades in the log yet.")
+		return
+	}
+
+	fmt.Printf("=== %d trades analyzed ===\n\n", count)
+
+	fmt.Printf("OVERALL: %d wins / %d losses  (%.1f%% win rate, $%.2f P/L)\n\n",
+		overall.wins, overall.losses, overall.winRate(), overall.pl)
+
+	if count < 200 {
+		fmt.Println("⚠️  Under 200 trades — treat every number below as a rough hint, not a conclusion.")
+		fmt.Println("   Small samples produce misleadingly extreme win rates in both directions.")
+		fmt.Println()
+	}
+
+	printTable("BY SIGNAL (which strategy contributed to the winning direction)", bySignal)
+	printTable("BY MARKET TYPE", byMarketType)
+	printTable("BY CONFIDENCE BUCKET", byConfidence)
+
+	fmt.Println("How to read this: a signal with a high trade count and win rate meaningfully")
+	fmt.Println("above 50% (accounting for the ~15% edge needed to beat an 85% payout, i.e.")
+	fmt.Println("above ~54.1%) is worth keeping. One with a low or ~50% win rate over enough")
+	fmt.Println("trades is dead weight — its hardcoded confidence value in the strategy code")
+	fmt.Println("doesn't match reality and should be lowered or removed.")
 }
 
-// startBackgroundTasks starts background maintenance tasks
-func startBackgroundTasks(engine *predictor.Engine, store *storage.MemoryStorage, tracker *tracker.ResultTracker, cfg types.Config) {
-	// Cache cleanup every 30 seconds
-	go func() {
-		ticker := time.NewTicker(30 * time.Second)
-		defer ticker.Stop()
-
-		for range ticker.C {
-			engine.CleanupCache()
-		}
-	}()
-
-	// Stats calculation every minute
-	go func() {
-		ticker := time.NewTicker(time.Duration(cfg.Tracking.CalculateStatsInterval) * time.Second)
-		defer ticker.Stop()
-
-		for range ticker.C {
-			tracker.CalculateAllStats()
-		}
-	}()
-
-	// Storage cleanup every hour
-	go func() {
-		ticker := time.NewTicker(time.Duration(cfg.Storage.AutoCleanupInterval) * time.Second)
-		defer ticker.Stop()
-
-		for range ticker.C {
-			store.Cleanup(cfg.Storage.KeepPredictionsHours)
-			log.Println("🧹 Storage cleanup completed")
-		}
-	}()
-
-	// Performance summary every 5 minutes
-	go func() {
-		ticker := time.NewTicker(5 * time.Minute)
-		defer ticker.Stop()
-
-		for range ticker.C {
-			summary := tracker.GetPerformanceSummary()
-			log.Println(summary)
-		}
-	}()
+func add(b *bucket, r types.TradeResult) {
+	if r.Won {
+		b.wins++
+	} else {
+		b.losses++
+	}
+	b.pl += r.ProfitLoss
 }
 
-// printUsageInstructions prints API usage instructions
-func printUsageInstructions(cfg types.Config) {
-	log.Println("\n" + strings.Repeat("=", 70))
-	log.Println("📚 API USAGE INSTRUCTIONS")
-	log.Println(strings.Repeat("=", 70))
-	log.Printf("\n🌐 Dashboard: http://localhost:%d\n", cfg.API.Port)
-	log.Printf("\n📡 ENDPOINTS:\n")
-	log.Printf("  GET  /api/health                           - Health check\n")
-	log.Printf("  GET  /api/markets                          - List active markets\n")
-	log.Printf("  GET  /api/predict/:market/:duration        - Get prediction\n")
-	log.Printf("  GET  /api/predict/all/:duration            - All market predictions\n")
-	log.Printf("  GET  /api/stats                            - All statistics\n")
-	log.Printf("  GET  /api/stats/:market                    - Market statistics\n")
-	log.Printf("  GET  /api/results/:market                  - Trade results\n")
-	log.Printf("  GET  /api/performance                      - Performance summary\n")
-	log.Printf("  WS   /api/stream/:market?duration=60       - Real-time predictions\n")
-	log.Printf("\n💡 EXAMPLES:\n")
-	log.Printf("  curl http://localhost:%d/api/predict/volatility_75_1s/60\n", cfg.API.Port)
-	log.Printf("  curl http://localhost:%d/api/stats/volatility_75_1s\n", cfg.API.Port)
-	log.Printf("  curl http://localhost:%d/api/markets\n", cfg.API.Port)
-	log.Println("\n" + strings.Repeat("=", 70) + "\n")
+func confidenceBucket(c float64) string {
+	switch {
+	case c < 0.55:
+		return "50-55%"
+	case c < 0.60:
+		return "55-60%"
+	case c < 0.65:
+		return "60-65%"
+	case c < 0.70:
+		return "65-70%"
+	case c < 0.80:
+		return "70-80%"
+	default:
+		return "80%+"
+	}
 }
 
+func printTable(title string, m map[string]*bucket) {
+	fmt.Printf("--- %s ---\n", title)
+	if len(m) == 0 {
+		fmt.Println("(no data)")
+		fmt.Println()
+		return
+	}
+
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return m[keys[i]].total() > m[keys[j]].total()
+	})
+
+	fmt.Printf("%-30s %8s %8s %10s %12s\n", "Name", "Trades", "WinRate", "P/L", "")
+	for _, k := range keys {
+		b := m[k]
+		flag := ""
+		if b.total() >= 30 && b.winRate() < 51 {
+			flag = "⚠️  weak"
+		}
+		fmt.Printf("%-30s %8d %7.1f%% %9.2f  %s\n", k, b.total(), b.winRate(), b.pl, flag)
+	}
+	fmt.Println()
+}
