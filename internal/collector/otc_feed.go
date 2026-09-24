@@ -156,8 +156,18 @@ func (c *OTCCollector) connectBatch(connKey string, markets []string) error {
 	header := http.Header{}
 	header.Set("Origin", "https://deriv.com")
 
-	conn, _, err := websocket.DefaultDialer.Dial(c.config.APIURL, header)
+	conn, resp, err := websocket.DefaultDialer.Dial(c.config.APIURL, header)
 	if err != nil {
+		// "bad handshake" from gorilla/websocket hides the real reason.
+		// If Deriv's server actually responded (rather than the
+		// connection being dropped/blocked outright), resp tells us
+		// exactly why — 403 (blocked), 429 (rate limited), etc.
+		if resp != nil {
+			log.Printf("❌ Deriv handshake rejected: HTTP %d %s", resp.StatusCode, resp.Status)
+			resp.Body.Close()
+		} else {
+			log.Printf("❌ Deriv connection failed with no HTTP response at all (network-level block, not an app-level rejection)")
+		}
 		return fmt.Errorf("failed to connect to Deriv API: %w", err)
 	}
 
@@ -342,12 +352,13 @@ func (c *OTCCollector) marketToSymbol(market string) string {
         "crash_300_1s":  "CRASH300",
         "crash_500_1s":  "CRASH500",
         "crash_1000_1s": "CRASH1000",
- 
+
         // Boom indices (3)
         "boom_300_1s":  "BOOM300",
         "boom_500_1s":  "BOOM500",
         "boom_1000_1s": "BOOM1000",
- 		// Forex pairs (28) - USD Majors
+
+		// Forex pairs (28) - USD Majors
 		"frxEURUSD": "frxEURUSD",
 		"frxGBPUSD": "frxGBPUSD",
 		"frxUSDJPY": "frxUSDJPY",
@@ -399,7 +410,7 @@ func (c *OTCCollector) marketToSymbol(market string) string {
 func (c *OTCCollector) symbolToMarket(symbol string) string {
 	marketMap := map[string]string{
 		// Synthetic indices (11)
-		"volatility_5":   "R_5",
+		""volatility_5":   "R_5",
         "volatility_10":  "R_10",
         "volatility_25":  "R_25",
         "volatility_50":  "R_50",
@@ -423,7 +434,6 @@ func (c *OTCCollector) symbolToMarket(symbol string) string {
         "boom_300_1s":  "BOOM300",
         "boom_500_1s":  "BOOM500",
         "boom_1000_1s": "BOOM1000",
-
 		// Forex pairs (28) - USD Majors
 		"frxEURUSD": "frxEURUSD",
 		"frxGBPUSD": "frxGBPUSD",
