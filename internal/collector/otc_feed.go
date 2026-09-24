@@ -410,7 +410,7 @@ func (c *OTCCollector) marketToSymbol(market string) string {
 func (c *OTCCollector) symbolToMarket(symbol string) string {
 	marketMap := map[string]string{
 		// Synthetic indices (11)
-		""volatility_5":   "R_5",
+		"volatility_5":   "R_5",
         "volatility_10":  "R_10",
         "volatility_25":  "R_25",
         "volatility_50":  "R_50",
