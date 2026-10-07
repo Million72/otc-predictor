@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: edgeanalyzer
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 10000
+    autoDeploy: true
