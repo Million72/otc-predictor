@@ -1,0 +1,65 @@
+server:
+  port: 8080
+
+deriv:
+  app_id: ""   # not needed for the new public endpoint
+  ws_url: "wss://api.derivws.com/trading/v1/options/ws/public"
+
+markets:
+  forex:
+    - { symbol: "XAUUSD", deriv: "frxXAUUSD", is_jpy: false, is_gold: true }
+    - { symbol: "EURUSD", deriv: "frxEURUSD", is_jpy: false, is_gold: false }
+    - { symbol: "GBPUSD", deriv: "frxGBPUSD", is_jpy: false, is_gold: false }
+    - { symbol: "USDJPY", deriv: "frxUSDJPY", is_jpy: true,  is_gold: false }
+    - { symbol: "AUDUSD", deriv: "frxAUDUSD", is_jpy: false, is_gold: false }
+    - { symbol: "USDCAD", deriv: "frxUSDCAD", is_jpy: false, is_gold: false }
+    - { symbol: "USDCHF", deriv: "frxUSDCHF", is_jpy: false, is_gold: false }
+    - { symbol: "EURJPY", deriv: "frxEURJPY", is_jpy: true,  is_gold: false }
+    - { symbol: "GBPJPY", deriv: "frxGBPJPY", is_jpy: true,  is_gold: false }
+    - { symbol: "EURGBP", deriv: "frxEURGBP", is_jpy: false, is_gold: false}
+  synthetic:
+    
+    - { symbol: "Volatility 10",  deriv: "R_10" }
+    - { symbol: "Volatility 25",  deriv: "R_25" }
+    - { symbol: "Volatility 50",  deriv: "R_50" }
+    - { symbol: "Volatility 75",  deriv: "R_75" }
+    - { symbol: "Volatility 100", deriv: "R_100" }
+    - { symbol: "Volatility 10 (1s)",  deriv: "1HZ10V" }
+    - { symbol: "Volatility 15 (1s)",  deriv: "1HZ15V" }
+    - { symbol: "Volatility 25 (1s)",  deriv: "1HZ25V" }
+    - { symbol: "Volatility 30 (1s)",  deriv: "1HZ30V" }
+    - { symbol: "Volatility 50 (1s)",  deriv: "1HZ50V" }
+    - { symbol: "Volatility 75 (1s)",  deriv: "1HZ75V" }
+    - { symbol: "Volatility 90 (1s)",  deriv: "1HZ90V" }
+    - { symbol: "Volatility 100 (1s)", deriv: "1HZ100V" }
+    - { symbol: "Volatility 150 (1s)", deriv: "1HZ150V" }
+    - { symbol: "Step Index",     deriv: "stpRNG" }
+    - { symbol: "Step Index 200",     deriv: "stpRNG2" }
+    - { symbol: "Step Index 300",     deriv: "stpRNG3" }  
+    - { symbol: "Jump 10",        deriv: "JD10" }
+    - { symbol: "Boom 300",       deriv: "BOOM300N" }
+    - { symbol: "Boom 500",       deriv: "BOOM500" }
+    - { symbol: "Boom 600",       deriv: "BOOM600" }
+    - { symbol: "Boom 1000",      deriv: "BOOM1000" }
+    - { symbol: "Crash 300",      deriv: "CRASH300N" }
+    - { symbol: "Crash 500",      deriv: "CRASH500" }
+    - { symbol: "Crash 600",      deriv: "CRASH600" }
+    - { symbol: "Crash 1000",     deriv: "CRASH1000" }
+
+timeframes:
+  "1m":  { granularity: 60,    htf_gran: 300,   htf2_gran: 900 }
+  "5m":  { granularity: 300,   htf_gran: 900,   htf2_gran: 3600 }
+  "15m": { granularity: 900,   htf_gran: 1800,  htf2_gran: 3600 }
+  "30m": { granularity: 1800,  htf_gran: 3600,  htf2_gran: 14400 }
+  "1h":  { granularity: 3600,  htf_gran: 14400, htf2_gran: 86400 }
+  "4h":  { granularity: 14400, htf_gran: 86400, htf2_gran: 604800 }
+
+scan_interval_seconds: 300
+candle_count: 300
+htf_candle_count: 100
+
+signal_rules:
+  min_score: 10
+  min_margin: 4
+  rsi_overbought: 70
+  rsi_oversold: 30
